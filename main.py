@@ -15,11 +15,11 @@ import httpx
 logger = logging.getLogger("astrbot")
 
 
-@register("Memorybank", "Arain", "永久记忆库", "1.0.0")
+@register("ai_memory_longterm", "kjqwdw", "一个长久记忆插件", "1.0.0")
 class Main(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
-        self.PLUGIN_NAME = "Memorybank"
+        self.PLUGIN_NAME = "ai_memory_longterm"
 
         plugin_dir = os.path.dirname(os.path.abspath(__file__))
         self.summary_file = os.path.join(plugin_dir, "summary_data.json")
@@ -75,7 +75,7 @@ class Main(Star):
     async def create_summary(self, event: AstrMessageEvent):
         """总结并保存自上次总结以来的新对话"""
         session_id = self._get_unified_session_id(event)
-        await self._create_summary_internal(session_id, event)  # 调用内部方法
+        await self._create_summary_internal(session_id, event)
 
     @memory.command("clear")
     async def clear_summaries(self, event: AstrMessageEvent):
@@ -131,24 +131,22 @@ class Main(Star):
 
     async def _append_to_memory_data(self, session_id: str, role: str, content: str, event: AstrMessageEvent):
         """将消息追加到 memory_data.json，并更新计数器"""
-        lock = await self._get_lock(session_id)
-        async with lock:  # 使用锁
-            if session_id not in self.memory_data:
-                self.memory_data[session_id] = {"messages": [], "count": 0}
+        if session_id not in self.memory_data:
+            self.memory_data[session_id] = {"messages": [], "count": 0, "last_summary_index": -1}
 
-            message = {
-                "role": role,
-                "content": content,
-                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
-            self.memory_data[session_id]["messages"].append(message)
-            self.memory_data[session_id]["count"] += 1  # 更新计数器
+        message = {
+            "role": role,
+            "content": content,
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        self.memory_data[session_id]["messages"].append(message)
+        self.memory_data[session_id]["count"] += 1
 
-            await self._save_memory_data()
+        await self._save_memory_data()
 
-            # 检查是否需要自动总结
-            if self.memory_data[session_id]["count"] % self.auto_summary_interval == 0:  # 使用配置值
-                await self._create_summary_internal(session_id, event)
+        # 检查是否需要自动总结
+        if self.memory_data[session_id]["count"] % self.auto_summary_interval == 0:
+            await self._create_summary_internal(session_id, None)  # 自动总结，传入 None
 
 
     async def _save_memory_data(self):
@@ -166,39 +164,35 @@ class Main(Star):
 
     async def _create_summary_internal(self, session_id: str, event: AstrMessageEvent):
         """内部方法：总结并保存自上次总结以来的新对话, 供手动和自动调用"""
-        # 获取当前会话的ID
-        curr_cid = await self.context.conversation_manager.get_curr_conversation_id(
-            event.unified_msg_origin)
-        if not curr_cid:
-            await event.send("当前会话不存在。")
+
+        if session_id not in self.memory_data:
+            self.memory_data[session_id] = {"messages": [], "count": 0, "last_summary_index": -1}
+
+        last_summary_index = self.memory_data[session_id].get("last_summary_index", -1)
+        new_messages = self.memory_data[session_id]["messages"][last_summary_index + 1:]
+
+        if not new_messages:
+            if event: # 手动调用时发送
+                await event.send("没有新的对话需要总结。")
             return
 
-        # 获取会话对象
-        conversation = await self.context.conversation_manager.get_conversation(event.unified_msg_origin,
-                                                                              curr_cid)
-        if not conversation:
-            await event.send("当前会话不存在。")
-            return
-
-        # 获取历史
-        history = json.loads(conversation.history)
         conversation_history = ""
-        for entry in history:
-            if entry.get("role") == "user" or entry.get("role") == "assistant":
-                conversation_history += f"{entry['role']}: {entry['content']}\n"
-        if not conversation_history:
-            await event.send("没有新的对话需要总结。")
-            return
+        for entry in new_messages:
+            conversation_history += f"{entry['role']}: {entry['content']}\n"
 
         summary_text = await self._summarize_text_with_siliconflow(conversation_history)
 
         if not summary_text:
-            await event.send("总结失败：没有生成摘要。")
+            if event:  # 只有手动调用时才发送
+                await event.send("总结失败：没有生成摘要。")
             return
 
         await self._save_summary(session_id, summary_text)
-        logger.info(f"会话 {session_id} 已自动总结：\n{summary_text}") # 使用logger记录自动总结
-
+        self.memory_data[session_id]["last_summary_index"] = len(self.memory_data[session_id]["messages"]) - 1
+        await self._save_memory_data()
+        if event: # 手动调用时发送
+            await event.send(f"已生成并保存对话摘要：\n{summary_text}")
+        logger.info(f"会话 {session_id} 已总结：\n{summary_text}")
 
     async def _summarize_text_with_siliconflow(self, text: str) -> str:
         """使用硅基流动 API 总结文本"""
