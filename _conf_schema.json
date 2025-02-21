@@ -1,0 +1,39 @@
+{
+    "max_memories": {
+        "description": "最大记忆条数",
+        "type": "int",
+        "default": 10
+    },
+    "max_summaries": {
+        "description": "最大摘要条数",
+        "type": "int",
+        "default": 5
+    },
+    "similarity_threshold": {
+        "description": "摘要相似度阈值",
+        "type": "float",
+        "default": 0.7
+    },
+    "summary_model":{
+        "description": "摘要使用的模型",
+        "type": "string",
+        "default": "paraphrase-multilingual-MiniLM-L12-v2"
+    },
+    "siliconflow_model":{
+        "description": "硅基流动使用的模型",
+        "type": "string",
+        "default": "Qwen/Qwen2.5-7B-Instruct"
+    },
+    "siliconflow_api_key": {
+        "description": "硅基流动 API Key",
+        "type": "string",
+        "default": "",
+        "hint": "请在此处填写你的硅基流动 API Key"
+    },
+    "auto_summary_interval": {
+        "description": "自动总结间隔 ",
+        "type": "int",
+        "default": 10,
+        "hint": "每隔多少轮对话自动进行一次总结"
+    }
+}

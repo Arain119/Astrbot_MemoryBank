@@ -1,0 +1,6 @@
+name: Memory bank # 这是你的插件的唯一识别名。
+desc: 永久记忆库 # 插件简短描述
+help: 输入 /mem_help 查看记忆管理帮助。 # 插件的帮助信息
+version: v1.0.0 # 插件版本号。格式：v1.1.1 或者 v1.1
+author: Arain # 作者
+
