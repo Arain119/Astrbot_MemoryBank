@@ -15,7 +15,7 @@ import httpx
 logger = logging.getLogger("astrbot")
 
 
-@register("Memorybank", "Arain", "永久记忆库", "1.0.0")
+@register("Memorybank", "Arain", "永久记忆库", "1.1")
 class Main(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
