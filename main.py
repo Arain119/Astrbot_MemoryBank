@@ -15,11 +15,11 @@ import httpx
 logger = logging.getLogger("astrbot")
 
 
-@register("ai_memory_longterm", "kjqwdw", "一个长久记忆插件", "1.0.0")
+@register("Memorybank", "Arain", "永久记忆库", "1.0.0")
 class Main(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
-        self.PLUGIN_NAME = "ai_memory_longterm"
+        self.PLUGIN_NAME = "Memorybank"
 
         plugin_dir = os.path.dirname(os.path.abspath(__file__))
         self.summary_file = os.path.join(plugin_dir, "summary_data.json")
@@ -148,7 +148,6 @@ class Main(Star):
         if self.memory_data[session_id]["count"] % self.auto_summary_interval == 0:
             await self._create_summary_internal(session_id, None)  # 自动总结，传入 None
 
-
     async def _save_memory_data(self):
         """保存 memory_data.json"""
         with open(self.memory_file, "w", encoding='utf-8') as f:
@@ -199,7 +198,6 @@ class Main(Star):
 
         if not text:
             return ""
-
         url = "https://api.siliconflow.cn/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {self.siliconflow_api_key}",
@@ -210,7 +208,7 @@ class Main(Star):
             "messages": [
                 {
                     "role": "user",
-                    "content": f"请对以下对话进行总结摘要：\n{text}\n摘要应简洁、清晰，并包含关键信息。"
+                    "content": f"请使用中文对以下对话进行总结摘要：\n{text}\n摘要应十分简洁、清晰，并包含关键信息。"
                 }
             ],
             "stream": False,
@@ -249,7 +247,6 @@ class Main(Star):
         except Exception as e:
             logger.exception(f"总结时发生其他错误: {e}")
             return f"总结失败：{e}"
-
 
     async def _save_summary(self, session_id: str, summary_text: str):
         """保存摘要"""
