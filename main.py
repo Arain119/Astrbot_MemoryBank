@@ -14,11 +14,12 @@ import httpx
 
 logger = logging.getLogger("astrbot")
 
-@register("memory bank", "Arain", "永久记忆库", "1.0.0")
+
+@register("Memorybank", "Arain", "永久记忆库", "1.0.0")
 class Main(Star):
     def __init__(self, context: Context, config: dict):
         super().__init__(context)
-        self.PLUGIN_NAME = "memory bank"
+        self.PLUGIN_NAME = "Memorybank"
 
         plugin_dir = os.path.dirname(os.path.abspath(__file__))
         self.summary_file = os.path.join(plugin_dir, "summary_data.json")
@@ -119,6 +120,7 @@ class Main(Star):
     - AI 在对话时会参考历史摘要, 实现长久记忆
     - 每{self.auto_summary_interval}轮对话自动进行一次总结
         """
+
         return event.plain_result(help_text)
 
     async def _get_lock(self, session_id: str) -> asyncio.Lock:
@@ -147,6 +149,7 @@ class Main(Star):
             # 检查是否需要自动总结
             if self.memory_data[session_id]["count"] % self.auto_summary_interval == 0:  # 使用配置值
                 await self._create_summary_internal(session_id, event)
+
 
     async def _save_memory_data(self):
         """保存 memory_data.json"""
@@ -179,32 +182,15 @@ class Main(Star):
 
         # 获取历史
         history = json.loads(conversation.history)
-
-        # 获取上次总结的时间戳
-        last_summary_time = None
-        if session_id in self.summaries and self.summaries[session_id]:
-            last_summary_time = self.summaries[session_id][-1]['timestamp']
-            # 将字符串时间戳转换为 datetime 对象,便于比较
-            last_summary_time = datetime.datetime.strptime(last_summary_time, "%Y-%m-%d %H:%M:%S")
-
-        # 筛选出上次总结之后的新消息
-        new_conversation_history = ""
+        conversation_history = ""
         for entry in history:
-            if entry.get("role") in ("user", "assistant"):
-                # 如果没有上次总结时间, 则包含所有
-                if last_summary_time is None:
-                    new_conversation_history += f"{entry['role']}: {entry['content']}\n"
-                else:
-                    # 将消息的时间戳转换为 datetime 对象
-                    message_time = datetime.datetime.strptime(entry['timestamp'], "%Y-%m-%d %H:%M:%S")
-                    # 只包含晚于上次总结时间的消息
-                    if message_time > last_summary_time:
-                        new_conversation_history += f"{entry['role']}: {entry['content']}\n"
-
-        if not new_conversation_history:
+            if entry.get("role") == "user" or entry.get("role") == "assistant":
+                conversation_history += f"{entry['role']}: {entry['content']}\n"
+        if not conversation_history:
             await event.send("没有新的对话需要总结。")
             return
-        summary_text = await self._summarize_text_with_siliconflow(new_conversation_history)
+
+        summary_text = await self._summarize_text_with_siliconflow(conversation_history)
 
         if not summary_text:
             await event.send("总结失败：没有生成摘要。")
@@ -213,8 +199,10 @@ class Main(Star):
         await self._save_summary(session_id, summary_text)
         logger.info(f"会话 {session_id} 已自动总结：\n{summary_text}") # 使用logger记录自动总结
 
+
     async def _summarize_text_with_siliconflow(self, text: str) -> str:
         """使用硅基流动 API 总结文本"""
+
         if not text:
             return ""
 
@@ -330,10 +318,6 @@ class Main(Star):
             last_ai_message = history[-1]
 
             if last_user_message:
-                # 添加时间戳
-                last_user_message['timestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 await self._append_to_memory_data(session_id, last_user_message['role'], last_user_message['content'], event)
             if last_ai_message:
-                # 添加时间戳
-                last_ai_message['timestamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 await self._append_to_memory_data(session_id, last_ai_message['role'], last_ai_message['content'], event)
