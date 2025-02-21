@@ -65,3 +65,6 @@ auto_summary_interval: 自动总结的对话轮次间隔，默认为 10。
 本插件使用了硅基流动免费 API，请确保网络可以访问该服务，并且API密钥填写正确。当然如果您愿意也可以换成其它API，经测试7B模型的总结能力并不强...但由于总结摘要需要消耗大量tokens，这依然是可忍受的（富哥除外）。
 安装流程：
 直接在管理页面加载zip就可以完成安装。然后在XX盘\AstrBotLauncher-0.1.5.5\AstrBotLauncher-0.1.5.5\AstrBot下的requirements后添加httpx和sentence-transformers即可添加依赖。重新启动Astrbot将自动下载依赖，完成安装。
+
+# 关于记忆
+记忆位置存放在XX盘\AstrBotLauncher-0.1.5.5\AstrBotLauncher-0.1.5.5\AstrBot\data\plugins\memory_plugin下，聊天记录为memory_data.json文件，也就是插件配置中的“记忆”；总结摘要为summary_data.json文件，也就是插件配置中的“摘要”。
