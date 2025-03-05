@@ -14,6 +14,8 @@ import httpx
 
 logger = logging.getLogger("astrbot")
 
+# 设置 Hugging Face 镜像
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
 @register("Memorybank", "Arain", "永久记忆库", "1.1")
 class Main(Star):
@@ -46,11 +48,24 @@ class Main(Star):
 
         self.max_summaries = config.get("max_summaries", 5)
         self.similarity_threshold = config.get("similarity_threshold", 0.7)
-        self.summary_model = config.get("summary_model", "paraphrase-multilingual-MiniLM-L12-v2")
-        self.embedding_model = SentenceTransformer(self.summary_model, local_files_only=True)
+        self.summary_model_name = config.get("summary_model", "paraphrase-multilingual-MiniLM-L12-v2")
         self.siliconflow_api_key = config.get("siliconflow_api_key", "")
         self.siliconflow_model = config.get("siliconflow_model", "Qwen/Qwen2.5-7B-Instruct")
-        self.auto_summary_interval = config.get("auto_summary_interval", 10)  # 读取新的配置项
+        self.auto_summary_interval = config.get("auto_summary_interval", 10)
+
+        # 模型加载
+        try:
+            self.embedding_model = SentenceTransformer(self.summary_model_name)
+            logger.info(f"成功加载模型: {self.summary_model_name}")
+        except Exception as e:
+            logger.warning(f"加载模型失败: {e}, 尝试加载本地模型...")
+            local_model_path = config.get("local_model_path", "")  # 从配置文件读取本地模型路径
+            if local_model_path and os.path.exists(local_model_path):
+                self.embedding_model = SentenceTransformer(local_model_path)
+                logger.info(f"成功加载本地模型: {local_model_path}")
+            else:
+                logger.error("无法加载模型，请检查镜像是否可用或提供有效的本地模型路径！")
+                raise
 
         self.locks = {}  # 用于存储每个会话的锁
 
@@ -289,7 +304,7 @@ class Main(Star):
         session_id = self._get_unified_session_id(event)
         relevant_summaries = await self._get_relevant_summaries(session_id, current_input)
         if relevant_summaries:
-            return "💭 相关摘要：\n" + "\n".join([f"- {s}" for s in relevant_summaries])
+            return "相关记忆：\n" + "\n".join([f"- {s}" for s in relevant_summaries])
 
         return "我没有任何相关记忆。"
 
